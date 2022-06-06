@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 import uvicorn
 import pandas as pd
 from schemas import LoanSchema
@@ -19,15 +19,19 @@ def get_db():
         dbsession.close()
 
 
-@app.get('/retrieve_prediction')
-def get_prediction(database: Session = Depends(get_db)):
-    user_prediction = database.query(LoanApplication).filter(LoanApplication.Loan_ID == "1").first()
+@app.get('/retrieve_prediction/{loan_id}', response_model=LoanSchema)
+async def get_prediction(loan_id: str, database: Session = Depends(get_db)):
+    user_prediction = database.query(LoanApplication).filter(LoanApplication.Loan_ID == loan_id).first()
+    if user_prediction is None:
+        raise HTTPException(status_code=404, detail="User not found")
     return user_prediction
 
 
 @app.get("/get_all")
 def show_records(database: Session = Depends(get_db)):
     records = database.query(LoanApplication).all()
+    if records is None:
+        raise HTTPException(status_code=404, detail="No Records Found")
     return records
 
 
